@@ -39,4 +39,17 @@ public class SwaggerController {
             @RequestParam String userName) {
         return "Hello " + userName;
     }
+
+    /**
+     * 直接返回输入参数
+     * @param integer
+     * @return
+     */
+    @ApiOperation(value = "直接返回输入参数(Integer)")
+    @GetMapping("/returnInteger")
+    public Integer returnInteger(
+            @ApiParam(value = "Integer", required = true)
+            @RequestParam Integer integer) {
+        return integer;
+    }
 }

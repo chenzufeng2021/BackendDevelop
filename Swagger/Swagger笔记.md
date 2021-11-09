@@ -12,6 +12,8 @@ typora-copy-images-to: SwaggerPictures
 
 <span name="ref4">[4] [Swagger常用注解](https://www.cnblogs.com/three-fighter/p/12346184.html)</span>
 
+<span name="ref5">[5] [关于Swagger会报AbstractSerializableParameter类的异常问题](https://www.cnblogs.com/andy020/p/12088423.html)</span>
+
 # SpringBoot 集成 Swagger
 
 ## 创建工程
@@ -916,5 +918,90 @@ public class User {
                 '}';
     }
 }
+```
+
+# Swagger 问题
+
+## 依赖 swagger-models 问题
+
+```java
+package com.example.controller;
+
+import com.example.dto.User;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import org.springframework.web.bind.annotation.*;
+
+@Api(tags = "HelloSwagger接口")
+@RestController
+public class SwaggerController {
+    /**
+     * 直接返回输入参数
+     * @param integer
+     * @return
+     */
+    @ApiOperation(value = "直接返回输入参数(Integer)")
+    @GetMapping("/returnInteger")
+    public Integer returnInteger(
+            @ApiParam(value = "Integer", required = true)
+            @RequestParam Integer integer) {
+        return integer;
+    }
+}
+```
+
+此时后台报错：
+
+```markdown
+java.lang.NumberFormatException: For input string: ""
+	at java.lang.NumberFormatException.forInputString(NumberFormatException.java:65) ~[na:1.8.0_221]
+	at java.lang.Long.parseLong(Long.java:601) ~[na:1.8.0_221]
+	at java.lang.Long.valueOf(Long.java:803) ~[na:1.8.0_221]
+	at io.swagger.models.parameters.AbstractSerializableParameter.getExample(AbstractSerializableParameter.java:412) ~[swagger-models-1.5.20.jar:1.5.20]
+```
+
+Swagger 每一个@ApiModelProperty注解里example属性都会进行非空判断，但是它在判断的语句里只判断了null的情况，没有判断是空字符串的情况,所以解析数字的时候就会报这个异常<sup><a href="#ref5">[5]</a></sup>。
+
+![swagger-models](SwaggerPictures/swagger-models.png)
+
+### 解决方案
+
+排除`springfox-swagger2`中`swagger-models`，添加新的版本：
+
+```xml
+<!-- https://mvnrepository.com/artifact/io.springfox/springfox-swagger2 -->
+<dependency>
+    <groupId>io.springfox</groupId>
+    <artifactId>springfox-swagger2</artifactId>
+    <version>2.9.2</version>
+    <exclusions>
+        <exclusion>
+            <groupId>io.swagger</groupId>
+            <artifactId>swagger-models</artifactId>
+        </exclusion>
+    </exclusions>
+</dependency>
+
+<!-- https://mvnrepository.com/artifact/io.swagger.core.v3/swagger-models -->
+<dependency>
+    <groupId>io.swagger.core.v3</groupId>
+    <artifactId>swagger-models</artifactId>
+    <version>2.1.11</version>
+</dependency>
+
+<!-- https://mvnrepository.com/artifact/io.springfox/springfox-swagger-ui -->
+<dependency>
+    <groupId>io.springfox</groupId>
+    <artifactId>springfox-swagger-ui</artifactId>
+    <version>2.9.2</version>
+</dependency>
+
+<!-- https://mvnrepository.com/artifact/com.github.xiaoymin/knife4j-spring-boot-starter -->
+<dependency>
+    <groupId>com.github.xiaoymin</groupId>
+    <artifactId>knife4j-spring-boot-starter</artifactId>
+    <version>2.0.9</version>
+</dependency>
 ```
 
