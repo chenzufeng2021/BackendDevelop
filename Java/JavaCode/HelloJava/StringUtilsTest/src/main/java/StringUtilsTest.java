@@ -6,7 +6,5 @@ import org.apache.commons.lang3.StringUtils;
  * @usage StringUtilsTest
  */
 public class StringUtilsTest {
-    public void testIsEmpty() {
-        StringUtils.isAnyEmpty()
-    }
+
 }

@@ -692,6 +692,17 @@ public class SwaggerController {
 
 ## 依赖
 
+```xml
+<parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>2.5.5</version>
+    <relativePath/> <!-- lookup parent from repository -->
+</parent>
+```
+
+<font color=red>SpringBoot版本过高，集成2.9.2版本时，会出现 Failed to start bean 'documentationPluginsBootstrapper'</font>
+
 ```java
 <dependencies>
         <dependency>
