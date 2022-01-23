@@ -1,8 +1,12 @@
 # 忽略文件夹
 Java/JavaBooks
+Maven/MavenBooks
 
 ### IntelliJ IDEA ###
 .idea
 *.iws
 *.iml
 *.ipr
+DesignPattern/DesignPatternCode/out/production/BuilderPattern/Test.class
+
+*.class
