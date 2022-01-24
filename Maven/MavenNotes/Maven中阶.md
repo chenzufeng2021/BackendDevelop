@@ -131,7 +131,7 @@ WebMavenDemo项目依赖JavaMavenService1；JavaMavenService1项目依赖JavaMav
 
 ## 依赖范围
 
-Maven 在对项目进行编译、测试和运行时，会分别使用三套不同的 classpath。Maven 项目构建时，在不同阶段引入到 classpath 中的依赖时不同的：
+Maven 在对项目进行编译、测试和运行时，会分别使用三套不同的 classpath。Maven 项目构建时，在不同阶段引入到 classpath 中的依赖是不同的（<font color=red>Maven在编译、测试、运行（含打包）阶段中所需的依赖并不完全一致</font>）：
 
 - 编译时，Maven 会将与编译相关的依赖引入到==编译 classpath== 中；
 - 测试时，Maven 会将与测试相关的的依赖引入到==测试 classpath== 中；
@@ -143,7 +143,7 @@ Maven 具有以下 6 中常见的依赖范围：
 
 | 依赖范围 | 描述                                                         |
 | -------- | ------------------------------------------------------------ |
-| compile  | 编译依赖范围，scope 元素的==缺省值==。使用此依赖范围的 Maven 依赖，对于==三种 classpath 均有效==，即该 Maven 依赖在上述三种 classpath 均会被引入。例如，log4j 在编译、测试、运行过程都是必须的。 |
+| compile  | 编译依赖范围，scope 元素的==缺省值==。使用此依赖范围的 Maven 依赖，对于==三种 classpath 均有效==，即<font color=red>该 Maven 依赖在上述三种 classpath 均会被引入</font>。例如，log4j 在编译、测试、运行过程都是必须的。 |
 | test     | 测试依赖范围。使用此依赖范围的 Maven 依赖，只对==测试 classpath== 有效。例如，Junit 依赖只有在测试阶段才需要。 |
 | provided | 已提供依赖范围。使用此依赖范围的 Maven 依赖，只对==编译 classpath 和测试 classpath 有效==。例如，servlet-api 依赖对于编译、测试阶段而言是需要的，但是运行阶段，由于外部容器已经提供，故不需要 Maven 重复引入该依赖。 |
 | runtime  | 运行时依赖范围。使用此依赖范围的 Maven 依赖，只对测试 classpath、运行 classpath 有效。例如，JDBC 驱动实现依赖，<font color=red>其在编译时只需 JDK 提供的 JDBC 接口即可，只有测试、运行阶段才需要实现了 JDBC 接口的驱动</font>。 |
@@ -164,6 +164,8 @@ Maven 具有以下 6 中常见的依赖范围：
 
 项目 A 依赖于项目 B，B 又依赖于项目 C，此时我们可以将 A 对于 B 的依赖称之为第一直接依赖，B 对于 C 的依赖称之为第二直接依赖。
 
+<img src="MavenPictures/Maven依赖传递3.png" alt="Maven依赖传递3" style="zoom:40%;" />
+
 B 是 A 的直接依赖，C 是 A 的间接依赖，根据 Maven 的依赖传递机制，<font color=red>间接依赖 C 会以传递性依赖的形式引入到 A 中，但这种引入并不是无条件的，它会受到依赖范围的影响</font>。
 
 传递性依赖的依赖范围受第一直接依赖和第二直接依赖的范围影响，如下表所示：
@@ -176,6 +178,15 @@ B 是 A 的直接依赖，C 是 A 的间接依赖，根据 Maven 的依赖传递
 | runtime  | runtime  | -    | -        | runtime  |
 
 ![Maven依赖范围对依赖传递的影响](MavenPictures/Maven依赖范围对依赖传递的影响.png)
+
+传递依赖的依赖范围规律总结如下：
+
+- 当第二直接依赖的依赖范围为==compile==：传递依赖的依赖范围同第一直接依赖的依赖范围一样
+- 当第二直接依赖的依赖范围为==test==：传递依赖将不会被引入
+- 当第二直接依赖的依赖范围为==provided==：只有当第一直接依赖的依赖范围亦为provided时，传递依赖才会被引入，且依赖范围依然是provided
+- 当第二直接依赖的依赖范围为==runtime==：除了第一直接依赖的依赖范围为compile时传递依赖的依赖范围为runtime外，其余情况下，传递依赖的依赖范围同第一直接依赖的依赖范围一样
+
+
 
 ## 依赖调节
 
@@ -259,11 +270,8 @@ Maven 为用户提供了两种解决方式：排除依赖（Dependency Exclusion
 排除依赖和可选依赖都能在项目中将间接依赖排除在外，但两者实现机制却完全不一样。
 
 - **排除依赖**是控制==当前项目==，==是否使用==其直接依赖==传递下来==的接间依赖；**可选依赖**是控制当前项目的依赖==是否向下传递==（<font color=red>对外隐藏当前所依赖的资源</font>）；
-
 - **可选依赖**的优先级==高于==**排除依赖**；
 - 若对于同一个间接依赖，同时使用排除依赖和可选依赖进行设置，那么可选依赖的取值必须为 false，否则排除依赖无法生效。
-
-- 
 
 ### 排除依赖
 
@@ -311,6 +319,10 @@ Maven 为用户提供了两种解决方式：排除依赖（Dependency Exclusion
 
 ### 可选依赖
 
+可选依赖是通过项目中的POM文件的依赖元素dependency下的==option元素==中进行配置，只有显式地配置项目中某依赖的option元素为==true==时，该依赖才是可选依赖；不设置该元素或值为==false==时，该依赖即不是可选依赖。
+
+其意义在于，<font color=red>当某个间接依赖是可选依赖时，无论依赖范围是什么，其都不会因为传递性依赖机制而被引入</font>！
+
 与上文的应用场景相同，也是 A 希望排除间接依赖 X，<font color=red>除了在 A 的 POM 文件，关于依赖 B 的依赖声明中，将 X 设置为排除依赖外，还可以在 B 的 POM 文件中，将引入的依赖 X 设置为可选依赖</font>。
 
 在 <font color=red>B 的 POM 关于 X 的依赖声明中</font>使用 ==optional 元素==，将其设置成可选依赖，示例配置如下：
@@ -344,6 +356,20 @@ Maven 为用户提供了两种解决方式：排除依赖（Dependency Exclusion
 - optional ==默认值为 false==，表示可以向下传递称为间接依赖；
 - 若 optional 元素取值为 ==true==，则表示当前依赖==不能==向下传递成为间接依赖。
 
+假设在项目A中存在如下依赖关系：
+
+```markdown
+A -> M
+M -> X(可选依赖)
+M -> Y(可选依赖)
+```
+
+当上述依赖的依赖范围均为compile，则间接依赖X、Y将通过传递性依赖机制被引入到A中。
+
+但是由于M中对X、Y的依赖均是可选依赖。故X、Y依赖都不会被传递到项目A中，即X、Y依赖不会对项目A产生任何影响：
+
+<img src="MavenPictures/可选依赖.png" alt="可选依赖" style="zoom:33%;" />
+
 
 
 # 生命周期与插件
@@ -356,7 +382,9 @@ Maven有三套相互独立的生命周期，请注意这里说的是“三套”
 - **clean** – 清理构建输出，包括生成的编译类、JAR文件等
 - **site** – 为项目生成文档
 
-每一个构建生命周期都是独立执行的，可以让Maven同时执行多个构建生命周期，它们之间彼此独立，就像独立执行Maven命令一样。
+一个生命周期中的各个阶段是有先后顺序的，后一个阶段任务的执行依赖于前一个阶段任务已经完成。故当用户通过命令行执行某阶段的任务，Maven会自动地把相应的生命周期中的前置阶段任务自动依次执行完成。
+
+而三种生命周期之间是相互独立的，执行某一个生命周期的阶段任务时，不会对其他生命周期产生任何影响。
 
 ## Clean Lifecycle
 
@@ -411,7 +439,7 @@ Maven有三套相互独立的生命周期，请注意这里说的是“三套”
 
 ## 插件
 
-Maven实际上是一个`插件执行框架`，`Maven中的所有任务都是由插件完成的`。
+Maven实际上是一个`插件执行框架`，`Maven中的所有任务都是由插件完成的`。即，Maven的生命周期是抽象的，各阶段的工作实际是通过Maven插件去执行完成的。在一个Maven插件中，其可以具备多个功能，通常称插件功能为**Goal目标**。
 
 Maven插件是构建目标的集合，也称为MOJO (Maven Old Java Object)。`可以把插件理解为一个类，而构建目标是类中的方法`。构建阶段包含一系列的构建目标，可以理解为`按顺序调用各个插件中的构建目标`（方法），然后一系列的构建阶段组成一个构建生命周期。
 
@@ -478,11 +506,133 @@ Maven插件是构建目标的集合，也称为MOJO (Maven Old Java Object)。`�
 </build>
 ```
 
+### 绑定插件
 
+将Maven生命周期与Maven插件相互进行绑定，即可完成实际的构建任务。
+
+具体地，是将生命周期的阶段与插件的插件目标相互绑定，以完成某个具体的构建任务。以项目编译为例，<font color=red>将default生命周期的compile阶段与maven-compiler-plugin插件的compile目标绑定在一起后，即可实现项目编译</font>。
+
+### 内置绑定
+
+由于Maven的生命周期需要绑定插件后才可以产生实际作用，为最大程度降低用户的配置、使用难度，Maven对各生命周期的主要阶段绑定了默认插件目标。
+
+基于此用户无需手动绑定，直接在命令行中调用Maven的相关生命周期阶段，即可执行相应的构建任务。
+
+Maven对各生命周期的内置绑定如下，由于default生命周期阶段内置绑定的插件目标与最终打包的类型有关，这里以常见的打包类型jar包为例进行介绍：
+
+![内置绑定](MavenPictures/内置绑定.jpg)
+
+### 自定义绑定
+
+Maven内置绑定的插件可供用户实现基础的项目构建任务，而如果用户需要完成其他的构建任务时，可通过自定义绑定的方式，将某个插件目标绑定到生命周期的某个阶段上。
+
+这里我们以创建项目的源码jar包举例说明，由于内置绑定的插件目标没有可以完成该任务的，所以我们需要先确定可以完成该任务的Maven插件及插件目标，然后将其绑定到生命周期的某一阶段上。
+
+插件 maven-source-plugin 的 jar-no-fork 目标能够将项目的主代码打包为jar包。在项目POM文件build元素的子元素plugins中可包含若干个plugin元素，其可用于向项目中引入Maven的插件。
+
+Maven插件和Maven依赖一样也是基于Maven进行管理的，故其同样需要配置groupId、artifactId、version元素信息。<font color=red>executions元素下可包含若干个execution子元素，用于配置执行任务</font>。这里我们配置一个id为attach-sources的任务，<font color=red>将该插件的目标 jar-no-fork 与default生命周期的package阶段进行绑定</font>。实例代码如下所示：
+
+```xml
+<build>
+    ...
+    <plugins>
+        ...
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-source-plugin</artifactId>
+            <version>2.1.1</version>
+            <executions>
+                <execution>
+                    <id>attach-sources</id>
+                    <phase>package</phase>
+                    <goals>
+                        <goal>jar-no-fork</goal>
+                    </goals>
+                </execution>
+            </executions>
+        </plugin>
+        ...
+    </plugins>
+    ...
+</build>
+```
+
+至此，创建项目的源码jar包的任务即可通过执行下述命令实现：
+
+```xml
+mvn package
+```
+
+当多个插件目标被绑定到生命周期的同一个阶段时，其执行顺序将由其插件目标的声明顺序决定。
+
+### POM中插件的全局配置
+
+可在POM文件中的plugin元素的子元素==configuration==中配置插件**参数 Parameters**。由于该参数是直接配置到插件中并未指定具体的插件目标，所以其是一个全局配置会对该插件下的所有目标生效。
+
+下面即是一个对 maven-compiler-plugin 插件的全局配置示例，在POM中配置该插件中的<font color=red>参数source、tagret 值为1.8——使用Java 1.8版本的编译器对源码进行编译、生成与JVM 1.8版本兼容的class文件</font>，则该POM中的配置对于插件中存在相关参数的插件目标compiler:compile、compiler:testCompile将均生效：
+
+```xml
+<build>
+    ...
+    <plugins>
+        ...
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-compiler-plugin</artifactId>
+            <version>2.1</version>
+            <configuration>
+                <source>1.8</source>
+                <target>1.8</target>
+            </configuration>
+        </plugin>
+        ...
+    </plugins>
+    ...
+</build>
+```
+
+### POM中插件的任务配置
+
+在POM中配置插件参数，不仅支持全局配置，还可以基于任务来配置插件参数，实现<font color=red>在不同任务中使用不同的插件配置</font>。
+
+虽然这里也是在POM文件的configuration元素配置插件参数，但是需要注意的是这里configuration元素是位于用于配置任务的execution元素下的。
+
+下面即是一个对 maven-compiler-plugin 插件 testCompile 目标的配置示例：
+
+```xml
+<build>
+    ...
+    <plugins>
+        ...
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-compiler-plugin</artifactId>
+            <version>2.1</version>
+            <executions>
+                <execution>
+                    <id>compile-test-code</id>
+                    <phase>test-compile</phase>
+                    <goals>
+                        <goal>testCompile</goal>
+                    </goals>
+                    <configuration>
+                        <source>1.8</source>
+                        <target>1.8</target>
+                    </configuration>
+                </execution>
+            </executions>
+        </plugin>
+        ...
+    </plugins>
+    ...
+</build>
+```
 
 
 
 # 参考资料
 
 [1] [Maven依赖传递,排除依赖和可选依赖](https://www.cnblogs.com/cy0628/p/15034450.html)
+
+[2] [Maven(一)：依赖管理](https://zhuanlan.zhihu.com/p/139118591)
 
